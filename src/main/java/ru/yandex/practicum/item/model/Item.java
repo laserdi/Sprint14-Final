@@ -7,8 +7,8 @@ import java.util.Set;
 
 @Data
 public class Item {
-    private enum Status {free, busy}  //свободна, занята
-    
+    private enum Status { free, busy }  //свободна, занята
+
     Long id;            //Идентификатор вещи.
     String name;        //Название вещи.
     String description; //Описание вещи.

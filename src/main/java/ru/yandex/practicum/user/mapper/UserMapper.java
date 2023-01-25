@@ -12,7 +12,7 @@ public interface UserMapper {
      * Из объекта для ответа в контроллере в юзера.
      */
     User mapToModel(UserDto itemDto);
-    
+
     /**
      * Из юзера в объект для ответа в контроллере.
      */

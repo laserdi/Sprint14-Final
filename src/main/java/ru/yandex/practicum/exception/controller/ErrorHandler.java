@@ -15,7 +15,7 @@ import ru.yandex.practicum.exception.ValidateException;
 @Slf4j
 @Getter
 public class ErrorHandler {
-    
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<?> handleForBadRequest(final ValidateException ex) {
@@ -24,7 +24,7 @@ public class ErrorHandler {
         log.error(error + " — " + message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error + " — " + message);
     }
-    
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<?> handleForNotFound(final NotFoundRecordInBD ex) {
@@ -33,7 +33,7 @@ public class ErrorHandler {
         log.error(error + " — " + message);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error + " — " + message);
     }
-    
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<?> handleForConflict(final ConflictException ex) {
@@ -41,6 +41,6 @@ public class ErrorHandler {
         String message = ex.getMessage();
         log.error(error + " — " + message);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error + " — " + message);
-    
+
     }
 }

@@ -12,7 +12,7 @@ public interface ItemMapper {
      * Из объекта для ответа в контроллере в юзера.
      */
     Item mapToModel(ItemDto itemDto);
-    
+
     /**
      * Из юзера в объект для ответа в контроллере.
      */

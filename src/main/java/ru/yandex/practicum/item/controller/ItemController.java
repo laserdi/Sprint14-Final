@@ -23,12 +23,12 @@ import java.util.stream.Collectors;
 public class ItemController {
     private final ItemMapper mapper;
     private final ItemService itemService;
-    
+
     @GetMapping("/{itemId}")
     public ItemDto getItemById(@PathVariable Long itemId) {
         return mapper.mapToDto(itemService.getItemById(itemId));
     }
-    
+
     @GetMapping()
     public List<ItemDto> getAll(@RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> result = itemService.getAllItems(userId).stream()
@@ -36,7 +36,7 @@ public class ItemController {
                 .map(mapper::mapToDto).collect(Collectors.toList());
         return result;
     }
-    
+
     @GetMapping("/search")
     public List<ItemDto> searchItemsByText(@RequestParam(value = "text", required = false) String text) {
         if (text == null || text.isBlank()) {
@@ -44,7 +44,7 @@ public class ItemController {
             log.info(message);
             return Collections.emptyList();
         }
-        
+
         List<ItemDto> list = new ArrayList<>();
         for (Item item : itemService.searchItemsByText(text)) {
             ItemDto itemDto = mapper.mapToDto(item);
@@ -54,7 +54,7 @@ public class ItemController {
         log.info(message);
         return list;
     }
-    
+
     /**
      * Добавление новой вещи. Будет происходить по эндпойнту POST /items. На вход поступает объект ItemDto. userId в
      * заголовке X-Sharer-User-Id — это идентификатор пользователя, который добавляет вещь. Именно этот пользователь —
@@ -67,7 +67,7 @@ public class ItemController {
         itemDto.setOwnerId(ownerId);
         return mapper.mapToDto(itemService.add(mapper.mapToModel(itemDto), ownerId));
     }
-    
+
     @PatchMapping("{itemId}")
     public ItemDto update(@RequestHeader(value = "X-Sharer-User-Id", required = false) Long ownerId,
                           @PathVariable Long itemId, @Validated @RequestBody ItemDto itemDto) {
@@ -83,5 +83,5 @@ public class ItemController {
         log.info("Была обновлена вещь {}, id = {}", result.getName(), result.getId());
         return result;
     }
-    
+
 }

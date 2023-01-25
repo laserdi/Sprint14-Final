@@ -26,7 +26,7 @@ public class UserController {
     private final UserService service;
     private final UserMapper mapper;
     private final ValidationService validationService;
-    
+
 /*
     @Autowired
     public UserController(UserService service, ValidationService validationService, UserMapper mapper) {
@@ -35,7 +35,7 @@ public class UserController {
         this.mapper = mapper;
     }
 */
-    
+
     /**
      * Добавить юзера в БД.
      * @param userDto пользователь.
@@ -43,17 +43,17 @@ public class UserController {
      */
     @PostMapping
     ResponseEntity<UserDto> addToStorage(@RequestBody @Validated(CreateObject.class) UserDto userDto) {
-        
+
         User user = mapper.mapToModel(userDto);
         User createdUser = service.addToStorage(user);
-        
+
         ResponseEntity<UserDto> response = new ResponseEntity<>(
                 mapper.mapToDto(createdUser), HttpStatus.CREATED);
         String message = String.format("В БД добавлен новый пользователь:\t%s", response.getBody());
         log.info(message);
         return response;
     }
-    
+
     /**
      * Обновить юзера в БД.
      * @param userDto пользователь
@@ -69,7 +69,7 @@ public class UserController {
         log.info("Выполнено обновление пользователя в БД.");
         return mapper.mapToDto(updatedUser);
     }
-    
+
     /**
      * Удалить пользователя из БД.
      * @param userId ID удаляемого пользователя.
@@ -83,7 +83,7 @@ public class UserController {
         log.info(message);
         return new ResponseEntity<>(message, HttpStatus.OK);
     }
-    
+
     /**
      * Получить список всех пользователей.
      * @return список пользователей.
@@ -92,14 +92,14 @@ public class UserController {
     ResponseEntity<List<UserDto>> getAllUsersFromStorage() {
         List<UserDto> allUsersDto = new ArrayList<>();
         List<User> allUsers = service.getAllUsers();
-        
+
         allUsers.stream().map(mapper::mapToDto).forEach(allUsersDto::add);
-        
+
         ResponseEntity<List<UserDto>> response = new ResponseEntity<>(allUsersDto, HttpStatus.OK);
         log.info("Выдан список всех пользователей.");
         return response;
     }
-    
+
     /**
      * Получить пользователя по ID.
      * @param userId ID пользователя.

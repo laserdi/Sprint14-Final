@@ -14,15 +14,15 @@ import java.util.List;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    
+
     private final UserRepository userRepository;
     private final ValidationService validationService;
-    
+
     public UserServiceImpl(@Qualifier("InMemory") UserRepository userRepository, ValidationService validationService) {
         this.userRepository = userRepository;
         this.validationService = validationService;
     }
-    
+
     /**
      * Получить пользователя по ID.
      * @param id ID пользователя.
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
         }
         return result;
     }
-    
+
     /**
      * Получение списка всех пользователей.
      * @return Список пользователей.
@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     public List<User> getAllUsers() {
         return userRepository.getAllUsersFromStorage();
     }
-    
+
     /**
      * Добавить юзера в БД.
      * @param user пользователь.
@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
         validationService.checkUniqueEmailToCreate(user);
         return userRepository.addToStorage(user);
     }
-    
+
     /**
      * Обновить юзера в БД.
      * @param user пользователь
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
         validationService.checkUniqueEmailToUpdate(user);
         return userRepository.updateInStorage(user, isUpdateFields);
     }
-    
+
     /**
      * Удалить пользователя из БД.
      * @param id ID удаляемого пользователя
@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
     public void removeFromStorage(Long id) {
         userRepository.removeFromStorage(id);
     }
-    
+
     /**
      * Добавить пользователей с ID1 и ID2 в друзья.
      * @param id1 пользователь №1;
@@ -91,9 +91,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void addEachOtherAsFriends(Long id1, Long id2) {
-    
+
     }
-    
+
     /**
      * Удалить пользователей из друзей.
      * @param id1 пользователь №1.
@@ -101,9 +101,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void deleteFromFriends(Long id1, Long id2) {
-    
+
     }
-    
+
     /**
      * Вывести список общих друзей.
      * @param id1 пользователь №1
@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
     public List<User> getCommonFriends(Long id1, Long id2) {
         return null;
     }
-    
+
     /**
      * Вывести список друзей пользователя с ID.
      * @param id ID пользователя.
@@ -124,7 +124,7 @@ public class UserServiceImpl implements UserService {
     public List<User> getUserFriends(Long id) {
         return null;
     }
-    
+
     /**
      * Метод проверки наличия пользователя в базе данных по ID.
      * @param id пользователь, наличие логина которого необходимо проверить в базе данных.
@@ -136,7 +136,7 @@ public class UserServiceImpl implements UserService {
     public Integer idFromDBByID(Long id) {
         return null;
     }
-    
+
     /**
      * Проверка наличия пользователя по `Email`.
      * @param newEmail адрес эл. почты нового пользователя.
@@ -147,6 +147,6 @@ public class UserServiceImpl implements UserService {
     public Long getUserIdByEmail(String newEmail) {
         return userRepository.getUserIdByEmail(newEmail);
     }
-    
-    
+
+
 }

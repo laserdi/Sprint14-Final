@@ -16,13 +16,13 @@ import ru.yandex.practicum.user.repository.UserRepository;
 public class ValidationService {
     ItemRepository itemRepository;
     UserRepository userRepository;
-    
+
     @Autowired
     public ValidationService(ItemRepository itemRepository, UserRepository userRepository) {
         this.itemRepository = itemRepository;
         this.userRepository = userRepository;
     }
-    
+
     /**
      * Проверка пользователя на уникальность почты в БД при ОБНОВЛЕНИИ пользователя.
      * <p>Если почта принадлежит этому же пользователю, то всё хорошо.</p>
@@ -34,7 +34,7 @@ public class ValidationService {
         final Long inputId = user.getId();
         final String inputEmail = user.getEmail();
         final String inputName = user.getName();
-        
+
         if (inputId == null) {
             //обновление не возможно, поскольку нет ID.
             String message = "1. Обновление пользователя невозможно, поскольку ID входящего пользователя " +
@@ -42,7 +42,7 @@ public class ValidationService {
             log.info(message + " Входящий пользователь: " + user);
             throw new NotFoundRecordInBD(message);
         }
-        
+
         final Long idFromDbByEmail = userRepository.getUserIdByEmail(inputEmail);
         if (idFromDbByEmail != null && !inputId.equals(idFromDbByEmail)) {
             String message = String.format("2. Обновление пользователя невозможно, поскольку email = {} " +
@@ -51,13 +51,13 @@ public class ValidationService {
             throw new ConflictException(message);
         } //else if ()
     }
-    
-    
+
+
     public void checkUniqueEmailToCreate(User user) {
         final Long inputId = user.getId();
         final String inputEmail = user.getEmail();
-        
-        
+
+
         Long idFromDbByEmail = userRepository.getUserIdByEmail(inputEmail);
         //Надо проверить уникальность почты.
         if (idFromDbByEmail != null) {
@@ -67,24 +67,18 @@ public class ValidationService {
             log.info(message);
             throw new ConflictException(message);
         }
-        
-    
 /*
         String message = "Создание пользователя невозможно, поскольку ID входящего пользователя " +
                 "должен быть не Null.";
         log.info(message + " Входящий пользователь: " + user);
         throw new NotFoundRecordInBD(message);
-
-        
-        
         final Long idFromDB = userRepository.getUserIdByEmail(inputEmail);
         if (inputEmail!=null && idFromDB == null) {
             String message = "Обновление пользователя невозможно, поскольку ID отсутствует в БД.";
             log.info(message + " Входящий пользователь: " + user);
             throw new NotFoundRecordInBD(message);
         }
-    
-    
+
         if (!inputId.equals(idFromDB)) {
             String message = "Обновление пользователя невозможно, поскольку email принадлежит другому пользователю.";
             log.info(message + " - " + userRepository.getUserById(idFromDB));
@@ -92,7 +86,7 @@ public class ValidationService {
         }
  */
     }
-    
+
     /**
      * Проверка пользователя на уникальность почты.
      * <p>Если почта принадлежит этому же пользователю, то всё хорошо.</p>
@@ -103,13 +97,13 @@ public class ValidationService {
     public void checkUniqueEmail(User user) throws ConflictException {
         final String newEmail = user.getEmail();
         final Long idFromDB = userRepository.getUserIdByEmail(newEmail);
-        
+
         if (idFromDB.equals(user.getId())) {
             String message = "";
             throw new NotFoundRecordInBD(message);
         }
-        
-        
+
+
         if (idFromDB != null && user.getId() != null && !idFromDB.equals(user.getId())) {
             //Если ID из БД != ID входящего юзера, значит email принадлежит другому юзеру.
             String message = String.format("Email = '{}' уже есть в БД.", newEmail);
@@ -117,7 +111,7 @@ public class ValidationService {
             throw new ConflictException(message);
         }
     }
-    
+
     /**
      * Проверка всех полей пользователя.
      * @param user пользователь.
@@ -130,7 +124,7 @@ public class ValidationService {
             log.info(error);
             throw new ValidateException(error);
         }
-        
+
         final String name = user.getName();
         if (name == null || name.isBlank()) {
             String error = "Имя пользователя не может быть пустым.";
@@ -138,7 +132,7 @@ public class ValidationService {
             throw new ValidateException(error);
         }
     }
-    
+
     /**
      * Проверка полей пользователя.
      * <p>Если оба поля 'name' и 'email' равны null, то генерируется исключение.</p>
@@ -152,13 +146,13 @@ public class ValidationService {
         final String email = user.getEmail();
         result[0] = (name != null) && !name.isBlank();
         result[1] = (email != null) && !email.isBlank();
-        
+
         if (result[0] || result[1]) {
             return result;
         }
         throw new ValidateException("Все поля пользователя равны 'null'.");
     }
-    
+
     /**
      * Проверка наличия юзера в БД.
      * @param userId пользователя.
@@ -172,13 +166,13 @@ public class ValidationService {
             throw new NotFoundRecordInBD(error);
         }
         return result;
-        
+
     }
-    
+
     /////////////////////////////////////////////////////////////////////////////////
     //////////                  Проверки для вещей.                   ///////////////
     /////////////////////////////////////////////////////////////////////////////////
-    
+
     /**
      * Проверка наличия вещи в БД.
      * @param itemId ID вещи.
@@ -195,7 +189,7 @@ public class ValidationService {
         }
         return item;
     }
-    
+
     /**
      * Проверка отсутствия вещи в БД.
      * @param itemId ID вещи.
@@ -209,7 +203,7 @@ public class ValidationService {
             throw new ConflictException(message);
         }
     }
-    
+
     /**
      * Проверка всех полей вещей.
      * @param item вещь.
@@ -222,7 +216,7 @@ public class ValidationService {
             log.info(error);
             throw new ValidateException(error);
         }
-        
+
         final String description = item.getDescription();
         if (description == null || description.isBlank()) {
             String error = "Описание вещи не может быть пустым.";
@@ -242,8 +236,8 @@ public class ValidationService {
             throw new ValidateException(error);
         }
     }
-    
-    
+
+
     /**
      * Проверка полей пользователя.
      * <p>Если оба поля 'name' и 'email' равны null, то генерируется исключение.</p>
@@ -257,17 +251,16 @@ public class ValidationService {
         result[0] = (item.getName() != null) && !item.getName().isBlank();
         result[1] = (item.getDescription() != null) && !item.getDescription().isBlank();
         result[2] = item.getAvailable() != null;
-        
+
         for (boolean b : result) {
             return result;
         }
         throw new ValidateException("Все поля: название, описание и статус доступа к аренде равны 'null'.");
     }
-    
-    
+
+
     /**
      * Проверка: принадлежит ли вещь её хозяину.
-     *
      * @return True - вещь принадлежит хозяину.
      * <p>False - вещь не принадлежит хозяину.</p>
      * @throws ValidateException Если вещь и (или) ID хозяина = null.

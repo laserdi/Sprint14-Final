@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 @Repository
 public class FeedbackRepositoryImpl implements FeedbackRepository {
     Map<Long, Feedback> feedbackMap = new HashMap<>();
-    
+
     /**
      * Получить все отзывы о вещах.
      * @return список отзывов.
@@ -20,7 +20,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
     public List<Feedback> getAllFeedbacks() {
         return new ArrayList<>(feedbackMap.values());
     }
-    
+
     /**
      * Получить отзыв по его ID.
      * @param id ID отзыва.
@@ -30,7 +30,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
     public Feedback getFeedbackById(Long id) {
         return feedbackMap.get(id);
     }
-    
+
     /**
      * Получить список отзывов на вещь с id.
      * @param itemId ID вещи, для которой надо найти отзывы.
@@ -42,7 +42,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
                 .filter(fb -> fb.getItemId().equals(itemId)).collect(Collectors.toList());
         return result;
     }
-    
+
     /**
      * Есть ли запрашиваемый отзыв с ID в хранилище.
      * @param id ID запрашиваемого отзыва.
@@ -52,7 +52,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
     public Boolean isExcludeItemById(Long id) {
         return feedbackMap.containsKey(id);
     }
-    
+
     /**
      * Удалить отзыв с ID из хранилища.
      * @param id ID удаляемого отзыва.
@@ -61,7 +61,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
     public void removeFeedbackById(Long id) {
         feedbackMap.remove(id);
     }
-    
+
     /**
      * Удалить все отзывы вещи с ID = itemId.
      * @param itemId ID вещи.
@@ -69,7 +69,7 @@ public class FeedbackRepositoryImpl implements FeedbackRepository {
     @Override
     public void removeFeedbacksByItemId(Long itemId) {
         List<Long> idForRemove = new ArrayList<>();
-        
+
         for (Feedback fb : feedbackMap.values()) {
             if (fb.getItemId().equals(itemId)) {
                 idForRemove.add(fb.getId());

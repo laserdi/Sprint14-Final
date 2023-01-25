@@ -13,11 +13,11 @@ import java.util.List;
 @Slf4j
 @Qualifier("InMemory")
 public class UserRepositoryImpl implements UserRepository {
-    
+
     private final HashMap<Long, User> userMap = new HashMap<>();
-    
+
     private Long counter = 0L;
-    
+
     /**
      * Добавить юзера в БД.
      * @param user пользователь.
@@ -29,7 +29,7 @@ public class UserRepositoryImpl implements UserRepository {
         userMap.put(user.getId(), user);
         return user;
     }
-    
+
     /**
      * Обновить юзера в БД.
      * @param user пользователь
@@ -37,13 +37,13 @@ public class UserRepositoryImpl implements UserRepository {
      */
     @Override
     public User updateInStorage(User user, boolean[] isUpdateField) {
-        
+
         final Long inputId = user.getId();
         final String inputName = user.getName();
         final String inputEmail = user.getEmail();
-        
+
         User recordFromDB = userMap.get(inputId);   //Пользователь из БД.
-        
+
         if (isUpdateField[0]) {
             recordFromDB.setName(inputName);
         }
@@ -53,7 +53,7 @@ public class UserRepositoryImpl implements UserRepository {
         userMap.put(inputId, recordFromDB);
         return recordFromDB;
     }
-    
+
     /**
      * Удалить пользователя из БД.
      * @param id ID удаляемого пользователя.
@@ -62,7 +62,7 @@ public class UserRepositoryImpl implements UserRepository {
     public void removeFromStorage(Long id) {
         userMap.remove(id);
     }
-    
+
     /**
      * Получить список всех пользователей.
      * @return список пользователей.
@@ -71,7 +71,7 @@ public class UserRepositoryImpl implements UserRepository {
     public List<User> getAllUsersFromStorage() {
         return new ArrayList<>(userMap.values());
     }
-    
+
     /**
      * Получить пользователя по ID.
      * @param id ID пользователя.
@@ -82,7 +82,7 @@ public class UserRepositoryImpl implements UserRepository {
     public User getUserById(Long id) {
         return userMap.get(id);
     }
-    
+
     /**
      * Проверка наличия юзера в БД.
      * @param id пользователя.
@@ -92,7 +92,7 @@ public class UserRepositoryImpl implements UserRepository {
     public boolean isExistUserInDB(Long id) {
         return userMap.containsKey(id);
     }
-    
+
     /**
      * Проверка наличия пользователя по `Email`.
      * @param newEmail адрес эл. почты нового пользователя.
