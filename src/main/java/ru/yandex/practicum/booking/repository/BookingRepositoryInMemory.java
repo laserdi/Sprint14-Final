@@ -1,8 +1,10 @@
-package ru.yandex.practicum.booking;
+package ru.yandex.practicum.booking.repository;
+
+import ru.yandex.practicum.booking.model.Booking;
 
 import java.util.List;
 
-public interface BookingRepository {
+public interface BookingRepositoryInMemory {
 
     /**
      * Получить список всех бронирований.

@@ -1,4 +1,6 @@
-package ru.yandex.practicum.booking;
+package ru.yandex.practicum.booking.repository;
+
+import ru.yandex.practicum.booking.model.Booking;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class BookingRepositoryImpl implements BookingRepository {
-    Map<Long, Booking> bookingMap = new HashMap<>();
+public class BookingRepositoryInMemoryImpl implements BookingRepositoryInMemory {
+    private Map<Long, Booking> bookingMap = new HashMap<>();
 
     /**
      * Получить список всех бронирований.
@@ -36,7 +38,7 @@ public class BookingRepositoryImpl implements BookingRepository {
     @Override
     public List<Booking> getBookingsByUserId(Long userId) {
 
-        return bookingMap.values().stream().filter(b -> b.getUserId().equals(userId))
+        return bookingMap.values().stream().filter(b -> b.getBooker().getId().equals(userId))
                 .collect(Collectors.toList());
     }
 
@@ -46,7 +48,7 @@ public class BookingRepositoryImpl implements BookingRepository {
      */
     @Override
     public void removeBookingsByUserId(Long userId) {
-        List<Long> idForRemove = bookingMap.values().stream().filter(b -> b.getUserId().equals(userId))
+        List<Long> idForRemove = bookingMap.values().stream().filter(b -> b.getBooker().getId().equals(userId))
                 .map(Booking::getId).collect(Collectors.toList());
     }
 }

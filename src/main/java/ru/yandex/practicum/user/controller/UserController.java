@@ -7,14 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.user.dto.UserDto;
-import ru.yandex.practicum.user.mapper.UserMapper;
-import ru.yandex.practicum.user.model.User;
 import ru.yandex.practicum.user.service.UserService;
 import ru.yandex.practicum.validation.CreateObject;
 import ru.yandex.practicum.validation.UpdateObject;
 import ru.yandex.practicum.validation.ValidationService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -24,17 +21,7 @@ import java.util.List;
 @Validated
 public class UserController {
     private final UserService service;
-    private final UserMapper mapper;
     private final ValidationService validationService;
-
-/*
-    @Autowired
-    public UserController(UserService service, ValidationService validationService, UserMapper mapper) {
-        this.service = service;
-        this.validationService = validationService;
-        this.mapper = mapper;
-    }
-*/
 
     /**
      * Добавить юзера в БД.
@@ -44,11 +31,9 @@ public class UserController {
     @PostMapping
     ResponseEntity<UserDto> addToStorage(@RequestBody @Validated(CreateObject.class) UserDto userDto) {
 
-        User user = mapper.mapToModel(userDto);
-        User createdUser = service.addToStorage(user);
-
+        UserDto createdUser = service.addToStorage(userDto);
         ResponseEntity<UserDto> response = new ResponseEntity<>(
-                mapper.mapToDto(createdUser), HttpStatus.CREATED);
+                createdUser, HttpStatus.CREATED);
         String message = String.format("В БД добавлен новый пользователь:\t%s", response.getBody());
         log.info(message);
         return response;
@@ -64,10 +49,9 @@ public class UserController {
     UserDto updateInStorage(@PathVariable long userId,
                             @Validated({UpdateObject.class}) @RequestBody UserDto userDto) {
         userDto.setId(userId);
-        User user = mapper.mapToModel(userDto);
-        User updatedUser = service.updateInStorage(user);
+        UserDto updatedUserDto = service.updateInStorage(userDto);
         log.info("Выполнено обновление пользователя в БД.");
-        return mapper.mapToDto(updatedUser);
+        return updatedUserDto;
     }
 
     /**
@@ -76,10 +60,8 @@ public class UserController {
      */
     @DeleteMapping("/{userId}")
     ResponseEntity<String> removeFromStorage(@PathVariable Long userId) {
-        User deletedUser = validationService.checkExistUserInDB(userId);
         service.removeFromStorage(userId);
-        // TODO: 01.11.2022 Удалить вещи пользователя.
-        String message = String.format("Выполнено удаление пользователя с ID = %d. %s", userId, deletedUser);
+        String message = String.format("Выполнено удаление пользователя с ID = %d.", userId);
         log.info(message);
         return new ResponseEntity<>(message, HttpStatus.OK);
     }
@@ -90,10 +72,7 @@ public class UserController {
      */
     @GetMapping
     ResponseEntity<List<UserDto>> getAllUsersFromStorage() {
-        List<UserDto> allUsersDto = new ArrayList<>();
-        List<User> allUsers = service.getAllUsers();
-
-        allUsers.stream().map(mapper::mapToDto).forEach(allUsersDto::add);
+        List<UserDto> allUsersDto = service.getAllUsers();
 
         ResponseEntity<List<UserDto>> response = new ResponseEntity<>(allUsersDto, HttpStatus.OK);
         log.info("Выдан список всех пользователей.");
@@ -107,13 +86,7 @@ public class UserController {
      * <p>null - пользователя нет в библиотеке.</p>
      */
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Long userId) {
-        //Nuzhen li proverka? Ili eyo v service?
-        validationService.checkExistUserInDB(userId);
-        ResponseEntity<UserDto> response = new ResponseEntity<>(
-                mapper.mapToDto(service.getUserById(userId)), HttpStatus.OK);
-        String message = String.format("Выдан ответ на запрос пользователя по ID = %d:\t%s", userId, response);
-        log.info(message);
-        return response;
+    public UserDto getUserById(@PathVariable Long userId) {
+        return service.getUserById(userId);
     }
 }

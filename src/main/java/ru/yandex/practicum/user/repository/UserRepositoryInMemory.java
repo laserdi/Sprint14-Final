@@ -4,7 +4,7 @@ import ru.yandex.practicum.user.model.User;
 
 import java.util.List;
 
-public interface UserRepository {
+public interface UserRepositoryInMemory {
 
     /**
      * Добавить юзера в БД.
@@ -50,7 +50,7 @@ public interface UserRepository {
 
     /**
      * Проверка наличия пользователя по `Email`.
-     * @param newEmail адрес эл. почты нового пользователя.
+     * @param email адрес эл. почты нового пользователя.
      * @return ID пользователя с Email из БД. Null - нет такого email в БД.
      */
     Long getUserIdByEmail(String email);

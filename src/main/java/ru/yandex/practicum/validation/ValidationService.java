@@ -1,27 +1,26 @@
 package ru.yandex.practicum.validation;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.exception.ConflictException;
 import ru.yandex.practicum.exception.NotFoundRecordInBD;
 import ru.yandex.practicum.exception.ValidateException;
 import ru.yandex.practicum.item.model.Item;
-import ru.yandex.practicum.item.repository.ItemRepository;
+import ru.yandex.practicum.item.repository.ItemRepositoryInMemory;
+import ru.yandex.practicum.user.dto.UserDto;
+import ru.yandex.practicum.user.mapper.UserMapper;
 import ru.yandex.practicum.user.model.User;
-import ru.yandex.practicum.user.repository.UserRepository;
+import ru.yandex.practicum.user.repository.UserRepositoryInMemory;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ValidationService {
-    ItemRepository itemRepository;
-    UserRepository userRepository;
+    private final ItemRepositoryInMemory itemRepositoryInMemory;
+    private final UserRepositoryInMemory userRepository;
 
-    @Autowired
-    public ValidationService(ItemRepository itemRepository, UserRepository userRepository) {
-        this.itemRepository = itemRepository;
-        this.userRepository = userRepository;
-    }
+    private final UserMapper userMapper;
 
     /**
      * Проверка пользователя на уникальность почты в БД при ОБНОВЛЕНИИ пользователя.
@@ -45,15 +44,15 @@ public class ValidationService {
 
         final Long idFromDbByEmail = userRepository.getUserIdByEmail(inputEmail);
         if (idFromDbByEmail != null && !inputId.equals(idFromDbByEmail)) {
-            String message = String.format("2. Обновление пользователя невозможно, поскольку email = {} " +
-                    "принадлежит пользователю с ID = {}.", inputEmail, idFromDbByEmail);
+            String message = String.format("2. Обновление пользователя невозможно, поскольку email = %s " +
+                    "принадлежит пользователю с ID = %d.", inputEmail, idFromDbByEmail);
             log.info(message + " Входящий пользователь: " + user);
             throw new ConflictException(message);
         } //else if ()
     }
 
 
-    public void checkUniqueEmailToCreate(User user) {
+    public void checkUniqueEmailToCreate(UserDto user) {
         final Long inputId = user.getId();
         final String inputEmail = user.getEmail();
 
@@ -62,29 +61,11 @@ public class ValidationService {
         //Надо проверить уникальность почты.
         if (idFromDbByEmail != null) {
             //В БД есть пользователь с данной почтой.
-            String message = String.format("Создание пользователя невозможно, поскольку email = {} входящего " +
-                    "принадлежит пользователю: {}.", inputEmail, userRepository.getUserById(idFromDbByEmail));
+            String message = String.format("Создание пользователя невозможно, поскольку email = %s входящего " +
+                    "принадлежит пользователю: %s.", inputEmail, userRepository.getUserById(idFromDbByEmail));
             log.info(message);
             throw new ConflictException(message);
         }
-/*
-        String message = "Создание пользователя невозможно, поскольку ID входящего пользователя " +
-                "должен быть не Null.";
-        log.info(message + " Входящий пользователь: " + user);
-        throw new NotFoundRecordInBD(message);
-        final Long idFromDB = userRepository.getUserIdByEmail(inputEmail);
-        if (inputEmail!=null && idFromDB == null) {
-            String message = "Обновление пользователя невозможно, поскольку ID отсутствует в БД.";
-            log.info(message + " Входящий пользователь: " + user);
-            throw new NotFoundRecordInBD(message);
-        }
-
-        if (!inputId.equals(idFromDB)) {
-            String message = "Обновление пользователя невозможно, поскольку email принадлежит другому пользователю.";
-            log.info(message + " - " + userRepository.getUserById(idFromDB));
-            throw new ConflictException(message);
-        }
- */
     }
 
     /**
@@ -106,8 +87,8 @@ public class ValidationService {
 
         if (idFromDB != null && user.getId() != null && !idFromDB.equals(user.getId())) {
             //Если ID из БД != ID входящего юзера, значит email принадлежит другому юзеру.
-            String message = String.format("Email = '{}' уже есть в БД.", newEmail);
-            log.info(message + "Email принадлежит пользователю: {}." + userRepository.getUserById(idFromDB) + ".");
+            String message = String.format("Email = '%s' уже есть в БД.", newEmail);
+            log.info(message + "Email принадлежит пользователю: " + userRepository.getUserById(idFromDB) + ".");
             throw new ConflictException(message);
         }
     }
@@ -117,7 +98,7 @@ public class ValidationService {
      * @param user пользователь.
      * @throws ValidateException генерируемое исключение.
      */
-    public void validateUserFields(User user) {
+    public void validateUserFields(UserDto user) {
         final String email = user.getEmail();
         if (email == null || email.isBlank()) {
             String error = "Email пользователя не может пустым.";
@@ -158,14 +139,14 @@ public class ValidationService {
      * @param userId пользователя.
      * @throws NotFoundRecordInBD - пользователь не найден в БД.
      */
-    public User checkExistUserInDB(Long userId) {
+    public UserDto checkExistUserInDB(Long userId) {
         User result = userRepository.getUserById(userId);
         if (result == null) {
             String error = String.format("Error 404. Пользователь с ID = '%d' не найден в БД.", userId);
             log.info(error);
             throw new NotFoundRecordInBD(error);
         }
-        return result;
+        return userMapper.mapToDto(result);
 
     }
 
@@ -181,7 +162,7 @@ public class ValidationService {
      * @throws NotFoundRecordInBD вещь не найдена в БД.
      */
     public Item checkExistItemInDB(Long itemId) {
-        Item item = itemRepository.getItemById(itemId);
+        Item item = itemRepositoryInMemory.getItemById(itemId);
         if (item == null) {
             String message = String.format("Вещь с ID = '%d' не найдена в БД.", itemId);
             log.info("Error 404. " + message);
@@ -196,7 +177,7 @@ public class ValidationService {
      * @throws ConflictException Если вещь есть в БД, то генерируется исключение.
      */
     public void checkMissingItemInDB(Long itemId) {
-        Item item = itemRepository.getItemById(itemId);
+        Item item = itemRepositoryInMemory.getItemById(itemId);
         if (item != null) {
             String message = String.format("Вещь с ID = '%d' найдена в БД. %s", itemId, item);
             log.info("Error 409. " + message);
@@ -229,7 +210,7 @@ public class ValidationService {
             log.info(error);
             throw new ValidateException(error);
         }
-        final Long ownerId = item.getOwnerId();
+        final Long ownerId = item.getOwner().getId();
         if (ownerId == null) {
             String error = "Для вещи необходим хозяин.";
             log.info(error);
@@ -271,11 +252,11 @@ public class ValidationService {
             log.info("Error 400. {}", message);
             throw new ValidateException(message);
         }
-        if (!ownerId.equals(item.getOwnerId())) {
-            String message = String.format("Вещь {} не принадлежит хозяину с ID = {}.", item.getName(), ownerId);
+        if (!ownerId.equals(item.getOwner().getId())) {
+            String message = String.format("Вещь %s не принадлежит хозяину с ID = %s.", item.getName(), ownerId);
             log.info("Error 404. {}", message);
             throw new NotFoundRecordInBD(message);
         }
-        return (ownerId.equals(item.getOwnerId()));
+        return (ownerId.equals(item.getOwner().getId()));
     }
 }

@@ -1,13 +1,44 @@
 package ru.yandex.practicum.user.model;
 
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
+import ru.yandex.practicum.booking.model.Booking;
+import ru.yandex.practicum.item.comment.model.Comment;
+import ru.yandex.practicum.item.model.Item;
 
+import javax.persistence.*;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import java.util.List;
 
-@Data
+@Entity
+@Getter
+@Setter
 @RequiredArgsConstructor
+@AllArgsConstructor
+@Table(name = "users", schema = "public")
 public class User {
-    Long id;        //ID пользователя.
-    String name;    //Имя пользователя.
-    String email;   //Электронная почта.
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false, unique = true)
+    private Long id;        //ID пользователя.
+    @Column(name = "name", nullable = false)
+    @NotBlank
+    private String name;    //Имя пользователя.
+    @Column(name = "email", nullable = false)
+    @NotBlank
+    @Email
+    private String email;   //Электронная почта.
+    @OneToMany(mappedBy = "owner")
+    private List<Item> items;//Вещи, принадлежащие пользователю.
+    @OneToMany(mappedBy = "booker")
+    private List<Booking> bookings;
+    @OneToMany(mappedBy = "author")
+    private List<Comment> comments;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        return id != null && id.equals(((User) o).getId());
+    }
 }

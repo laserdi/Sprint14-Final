@@ -4,7 +4,7 @@ import ru.yandex.practicum.item.model.Item;
 
 import java.util.List;
 
-public interface ItemRepository {
+public interface ItemRepositoryInMemory {
 
     /**
      * Добавить вещь в репозиторий.
@@ -50,7 +50,7 @@ public interface ItemRepository {
      * @param item вещь.
      * @return обновлённая вещь.
      */
-    public Item updateInStorage(Item item, boolean[] isUpdateField);
+    Item updateInStorage(Item item, boolean[] isUpdateField);
 
     /**
      * Поиск вещей по тексту.

@@ -1,27 +1,25 @@
 package ru.yandex.practicum.user.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.exception.NotFoundRecordInBD;
 import ru.yandex.practicum.exception.ValidateException;
+import ru.yandex.practicum.user.dto.UserDto;
+import ru.yandex.practicum.user.mapper.UserMapper;
 import ru.yandex.practicum.user.model.User;
-import ru.yandex.practicum.user.repository.UserRepository;
-import ru.yandex.practicum.validation.ValidationService;
+import ru.yandex.practicum.user.repository.UserRepositoryJpa;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
-    private final UserRepository userRepository;
-    private final ValidationService validationService;
-
-    public UserServiceImpl(@Qualifier("InMemory") UserRepository userRepository, ValidationService validationService) {
-        this.userRepository = userRepository;
-        this.validationService = validationService;
-    }
+    private final UserMapper mapper;
+    private final UserRepositoryJpa userRepository;
 
     /**
      * Получить пользователя по ID.
@@ -30,14 +28,14 @@ public class UserServiceImpl implements UserService {
      * <p>null - пользователя нет в библиотеке.</p>
      */
     @Override
-    public User getUserById(Long id) {
-        User result = userRepository.getUserById(id);
-        if (result == null) {
+    public UserDto getUserById(Long id) {
+        Optional<User> result = userRepository.findById(id);
+        if (result.isEmpty()) {
             String error = "В БД отсутствует запись о пользователе при получении пользователя по ID = " + id + ".";
             log.info(error);
             throw new NotFoundRecordInBD(error);
         }
-        return result;
+        return mapper.mapToDto(result.get());
     }
 
     /**
@@ -45,33 +43,43 @@ public class UserServiceImpl implements UserService {
      * @return Список пользователей.
      */
     @Override
-    public List<User> getAllUsers() {
-        return userRepository.getAllUsersFromStorage();
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(mapper::mapToDto).collect(Collectors.toList());
     }
 
     /**
      * Добавить юзера в БД.
-     * @param user пользователь.
+     * @param userDto пользователь.
      * @return добавляемый пользователь.
      */
     @Override
-    public User addToStorage(User user) throws ValidateException, NotFoundRecordInBD {
-        validationService.validateUserFields(user);
-        validationService.checkUniqueEmailToCreate(user);
-        return userRepository.addToStorage(user);
+    public UserDto addToStorage(UserDto userDto) throws ValidateException, NotFoundRecordInBD {
+        User user = mapper.mapToModel(userDto);
+        return mapper.mapToDto(userRepository.save(user));
     }
 
     /**
      * Обновить юзера в БД.
-     * @param user пользователь
+     * @param userDto пользователь
      * @return обновлённый пользователь.
      */
     @Override
-    public User updateInStorage(User user) {
-        validationService.checkExistUserInDB(user.getId());
-        boolean[] isUpdateFields = validationService.checkFieldsForUpdate(user);
-        validationService.checkUniqueEmailToUpdate(user);
-        return userRepository.updateInStorage(user, isUpdateFields);
+    public UserDto updateInStorage(UserDto userDto) {
+        Optional<User> userForUpdate = userRepository.findById(userDto.getId());
+        if (userForUpdate.isPresent()) {
+            if (userDto.getName() != null) {
+                userForUpdate.get().setName(userDto.getName());
+            }
+            if (userDto.getEmail() != null) {
+                userForUpdate.get().setEmail(userDto.getEmail());
+            }
+            return mapper.mapToDto(userRepository.save(userForUpdate.get()));
+        } else {
+            String error = "Ошибка при обновлении пользователя в БД. В БД отсутствует запись о пользователе с ID = "
+                    + userDto.getId() + ".";
+            throw new NotFoundRecordInBD(error);
+        }
     }
 
     /**
@@ -81,7 +89,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void removeFromStorage(Long id) {
-        userRepository.removeFromStorage(id);
+        userRepository.deleteById(id);
     }
 
     /**
@@ -145,8 +153,6 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public Long getUserIdByEmail(String newEmail) {
-        return userRepository.getUserIdByEmail(newEmail);
+        return null;
     }
-
-
 }

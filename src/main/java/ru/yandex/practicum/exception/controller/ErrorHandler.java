@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.yandex.practicum.exception.ConflictException;
 import ru.yandex.practicum.exception.NotFoundRecordInBD;
+import ru.yandex.practicum.exception.UnsupportedStatusException;
 import ru.yandex.practicum.exception.ValidateException;
 
 @RestControllerAdvice
@@ -19,10 +20,10 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<?> handleForBadRequest(final ValidateException ex) {
-        String error = "Error 400. Bad Request.";
+        String error = "Error message";
         String message = ex.getMessage();
         log.error(error + " — " + message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error + " — " + message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error + message);
     }
 
     @ExceptionHandler
@@ -42,5 +43,15 @@ public class ErrorHandler {
         log.error(error + " — " + message);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error + " — " + message);
 
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<?> handleForUnsupportedStatus(final UnsupportedStatusException ex) {
+        String error = "{\n\"error\":\"Unknown state: UNSUPPORTED_STATUS\",\n" +
+                "\"message\":\"UNSUPPORTED_STATUS\"\n}";
+        String message = ex.getMessage();
+        log.error(error + " — " + message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

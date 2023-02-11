@@ -1,69 +1,128 @@
 package ru.yandex.practicum.item.service;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.booking.mapper.BookingForItemDtoMapper;
+import ru.yandex.practicum.booking.model.Booking;
+import ru.yandex.practicum.booking.model.BookingStatus;
 import ru.yandex.practicum.exception.NotFoundRecordInBD;
+import ru.yandex.practicum.exception.ValidateException;
+import ru.yandex.practicum.item.comment.dto.CommentDto;
+import ru.yandex.practicum.item.comment.mapper.CommentDtoMapper;
+import ru.yandex.practicum.item.comment.model.Comment;
+import ru.yandex.practicum.item.comment.repository.CommentRepository;
+import ru.yandex.practicum.item.dto.ItemDto;
+import ru.yandex.practicum.item.dto.ItemWithBookingAndCommentsDto;
+import ru.yandex.practicum.item.mapper.ItemMapper;
+import ru.yandex.practicum.item.mapper.ItemWithBookingAndCommentsDtoMapper;
 import ru.yandex.practicum.item.model.Item;
-import ru.yandex.practicum.item.repository.ItemRepository;
+import ru.yandex.practicum.item.repository.ItemRepositoryJpa;
+import ru.yandex.practicum.user.model.User;
+import ru.yandex.practicum.user.repository.UserRepositoryJpa;
 import ru.yandex.practicum.validation.ValidationService;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
+@Slf4j
 public class ItemServiceImpl implements ItemService {
-    private final ItemRepository itemRepository;
+    private final ItemRepositoryJpa itemRepositoryJpa;
+    private final UserRepositoryJpa userRepository;
     private final ValidationService validationService;
-
-    public ItemServiceImpl(@Qualifier("InMemory") ItemRepository itemRepository,
-                           ValidationService validationService) {
-        this.itemRepository = itemRepository;
-        this.validationService = validationService;
-    }
+    private final ItemMapper itemMapper;
+    private final BookingForItemDtoMapper bookingForItemDtoMapper;
+    private final CommentRepository commentRepository;
+    private final ItemWithBookingAndCommentsDtoMapper itemWithBAndCDtoMapper;
+    private final CommentDtoMapper commentDtoMapper;
 
 
     /**
      * Обновить вещь в БД. Редактирование вещи. Эндпойнт PATCH /items/{itemId}.
      * <p>Изменить можно название, описание и статус доступа к аренде.</p>
      * <p>Редактировать вещь может только её владелец.</p>
-     * @param item вещь.
+     * @param itemDto вещь.
      * @return обновлённая вещь.
      */
     @Override
-    public Item updateInStorage(Item item, Long ownerId) {
-        Item itemFromDB = validationService.checkExistItemInDB(item.getId());
-
-        if (!validationService.isOwnerItem(itemFromDB, ownerId)) {
-            String message = String.format("Вещь %s не принадлежит пользователю с ID = %d.", itemFromDB.getName(), ownerId);
-            throw new NotFoundRecordInBD("Error 404. " + message);
+    public ItemDto updateInStorage(Long itemId, ItemDto itemDto, Long ownerId) {
+        Item itemFromDB = itemRepositoryJpa.findById(itemId)
+                .orElseThrow(() -> new NotFoundRecordInBD("Ошибка при обновлении вещи с ID = " + itemId
+                        + " пользователя с ID = " + ownerId + " в БД. В БД отсутствует запись о вещи."));
+        User ownerFromDB = userRepository.findById(ownerId)
+                .orElseThrow(() -> new NotFoundRecordInBD("Ошибка при обновлении вещи с ID = " + itemId
+                        + " пользователя с ID = " + ownerId + " в БД. В БД отсутствует запись о пользователе."));
+        if (itemFromDB.getOwner().getId().equals(ownerFromDB.getId())) {
+            if (itemDto.getName() != null) {
+                itemFromDB.setName(itemDto.getName());
+            }
+            if (itemDto.getDescription() != null) {
+                itemFromDB.setDescription(itemDto.getDescription());
+            }
+            if (itemDto.getAvailable() != null) {
+                itemFromDB.setAvailable(itemDto.getAvailable());
+            }
+            if (itemDto.getRequestId() != null) {
+                itemFromDB.setRequestId(itemDto.getRequestId());
+            }
+        } else {
+            String message = String.format("Error 409. 2. Обновление вещи невозможно, поскольку ID этой вещи = %d " +
+                    "принадлежит пользователю с ID = %d.", itemId, ownerFromDB.getId());
+            log.info(message);
+            throw new NotFoundRecordInBD(message);
         }
-        validationService.checkExistUserInDB(ownerId);
-        boolean[] isUpdateFields = validationService.checkFieldsForUpdate(item);
-        return itemRepository.updateInStorage(item, isUpdateFields);
+        return itemMapper.mapToDto(itemRepositoryJpa.save(itemFromDB));
     }
 
     /**
      * Добавить вещь в репозиторий.
-     * @param item    добавленная вещь.
+     * @param itemDto добавленная вещь.
      * @param ownerId ID владельца вещи.
      * @return добавленная вещь.
      */
     @Override
-    public Item add(Item item, Long ownerId) {
-        item.setOwnerId(ownerId);
+    public ItemDto add(ItemDto itemDto, Long ownerId) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new NotFoundRecordInBD("В БД отсутствует запись о пользователе с ID = '" + ownerId +
+                        "' при добавлении вещи в репозиторий"));
+        Item item = itemMapper.mapToModel(itemDto);
+        item.setOwner(owner);
         validationService.validateItemFields(item);
-        validationService.checkMissingItemInDB(item.getId());
-        validationService.checkExistUserInDB(item.getOwnerId());
-        return itemRepository.add(item);
+        return itemMapper.mapToDto(itemRepositoryJpa.save(item));
     }
 
     /**
-     * Получить список вещей.
-     * @return список вещей.
+     * Получить список вещей пользователя с ID.
+     * @return список вещей пользователя.
      */
     @Override
-    public List<Item> getAllItems(Long userId) {
-        return itemRepository.getAllItems(userId);
+    public List<ItemWithBookingAndCommentsDto> getItemsByUserId(Long ownerId) {
+        User owner = userRepository.findById(ownerId).orElseThrow(() ->
+                new NotFoundRecordInBD("Ошибка при получении списка вещей пользователя с ID = " + ownerId
+                        + "в БД. В БД отсутствует запись о пользователе."));
+        List<Item> resultItems = itemRepositoryJpa.findAllByOwnerOrderById(owner);
+        List<ItemWithBookingAndCommentsDto> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        for (Item i : resultItems) {
+            ItemWithBookingAndCommentsDto itemWithBAndC = itemWithBAndCDtoMapper.mapToDto(i);
+            List<Booking> bookings = i.getBookings();
+
+            Booking lastBooking = findLastBookingByDate(bookings, now);
+            Booking nextBooking = findNextBookingByDate(bookings, now);
+            itemWithBAndC.setLastBooking(bookingForItemDtoMapper.mapToDto(lastBooking));
+            itemWithBAndC.setNextBooking(bookingForItemDtoMapper.mapToDto(nextBooking));
+
+            List<Comment> comments = commentRepository.findAllByItemOrderById(i);
+            List<CommentDto> commentDtos = comments.stream()
+                    .map(commentDtoMapper::mapToDto).collect(Collectors.toList());
+            itemWithBAndC.setFeedbacks(commentDtos);
+            result.add(itemWithBAndC);
+        }
+        return result;
     }
 
     /**
@@ -72,32 +131,19 @@ public class ItemServiceImpl implements ItemService {
      * @return запрашиваемая вещь.
      */
     @Override
-    public Item getItemById(Long itemId) {
-        Item result;
-        validationService.checkExistItemInDB(itemId);
-        result = itemRepository.getItemById(itemId);
-        return result;
+    public ItemDto getItemById(Long itemId) {
+        return itemMapper.mapToDto(itemRepositoryJpa.findById(itemId).orElseThrow(()
+                -> new NotFoundRecordInBD("Error 404. Запись о вещи с Id = " + itemId + " не найдена в БД.")));
     }
 
-    /**
-     * Есть ли запрашиваемая вещь с ID в хранилище.
-     * @param itemId ID запрашиваемой вещи.
-     * @return запрашиваемая вещь.
-     */
-    @Override
-    public Boolean isExcludeItemById(Long itemId) {
-        return itemRepository.isExcludeItemById(itemId);
-    }
 
     /**
      * Удалить вещь с ID из хранилища.
      * @param itemId ID удаляемой вещи.
      */
     @Override
-    public Item removeItemById(Long itemId) {
-        Item item = validationService.checkExistItemInDB(itemId);
-        itemRepository.removeItemById(itemId);
-        return item;
+    public ItemDto removeItemById(Long itemId) {
+        return null;
     }
 
     /**
@@ -106,7 +152,138 @@ public class ItemServiceImpl implements ItemService {
      * @return список вещей.
      */
     @Override
-    public List<Item> searchItemsByText(String text) {
-        return itemRepository.searchItemsByText(text);
+    public List<ItemDto> searchItemsByText(String text) {
+        if (text == null || text.isBlank()) {
+            return new ArrayList<>();
+        }
+        List<Item> resultItems = itemRepositoryJpa.searchItemsByText(text);
+        List<ItemDto> result = resultItems.stream().map(itemMapper::mapToDto)
+                .filter(ItemDto::getAvailable).collect(Collectors.toList());
+        return result;
+    }
+
+    /**
+     * Теперь нужно, чтобы владелец видел даты последнего и ближайшего следующего
+     * бронирования для каждой вещи, когда просматривает вещь.
+     * @param itemId  ID вещи.
+     * @param ownerId пользователь
+     * @return вещь с информацией о бронированиях.
+     */
+    @Override
+    public ItemWithBookingAndCommentsDto getItemWithBookingAndComment(Long itemId, Long ownerId) {
+        Item itemFromBd = itemRepositoryJpa.findById(itemId)
+                .orElseThrow(() -> new NotFoundRecordInBD("Ошибка при получении списка вещей пользователя с ID = "
+                        + ownerId + "в БД. В БД отсутствует запись о пользователе."));
+        User ownerFromBd = userRepository.findById(ownerId)
+                .orElseThrow(() -> new NotFoundRecordInBD("Ошибка при обновлении вещи с ID = " + itemId
+                        + " пользователя с ID = " + ownerId + " в БД. В БД отсутствует запись о пользователе."));
+        List<Booking> allBookings = itemFromBd.getBookings();
+        Booking lastBooking = null;
+        Booking nextBooking = null;
+        LocalDateTime now = LocalDateTime.now();
+
+        if (itemFromBd.getOwner().getId().equals(ownerId) && allBookings != null) {
+            nextBooking = findNextBookingByDate(allBookings, now);
+            lastBooking = findLastBookingByDate(allBookings, now);
+        }
+        ItemWithBookingAndCommentsDto itemWithBAndCDto = itemWithBAndCDtoMapper.mapToDto(itemFromBd);
+        itemWithBAndCDto.setNextBooking(bookingForItemDtoMapper.mapToDto(nextBooking));
+        itemWithBAndCDto.setLastBooking(bookingForItemDtoMapper.mapToDto(lastBooking));
+        List<Comment> commentsFromDb = itemFromBd.getComments();
+        List<CommentDto> commentDtoForResponse = commentsFromDb.stream()
+                .map(commentDtoMapper::mapToDto).collect(Collectors.toList());
+        itemWithBAndCDto.setFeedbacks(commentDtoForResponse);
+        return itemWithBAndCDto;
+    }
+
+    /**
+     * Добавить комментарий к вещи пользователем, действительно бравшим вещь в аренду.
+     * @param bookerId ID пользователя, добавляющего комментарий.
+     * @param itemId   ID вещи, которой оставляется комментарий.
+     */
+    @Override
+    public CommentDto saveComment(Long bookerId, Long itemId, CommentDto commentDto) {
+        if (commentDto.getContent().isBlank()) {
+            throw new ValidateException("Текст комментария не может быть пустым.");
+        }
+        User userFromBd = userRepository.findById(bookerId).orElseThrow(() ->
+                new NotFoundRecordInBD("Ошибка при сохранении комментария к вещи с ID = " + itemId
+                        + " пользователя с ID = " + bookerId + " в БД. В БД отсутствует запись о пользователе."));
+        Item itemFromBd = itemRepositoryJpa.findById(itemId).orElseThrow(() ->
+                new NotFoundRecordInBD("Ошибка при сохранении комментария к вещи с ID = " + itemId
+                        + " пользователя с ID = " + bookerId + " в БД. В БД отсутствует запись о вещи."));
+        List<Booking> bookings = itemFromBd.getBookings();
+        boolean isBooker = false;
+        for (Booking b : bookings) {
+            if (b.getBooker().getId().equals(bookerId) && b.getEndTime().isBefore(LocalDateTime.now())) {
+                isBooker = true;
+                break;
+            }
+        }
+        if (!isBooker) {
+            throw new ValidateException("Ошибка при сохранении комментария к вещи с ID = " + itemId
+                    + " пользователя с ID = " + bookerId + " в БД. Пользователь не арендовал эту вещь.");
+        }
+        Comment commentForSave = commentDtoMapper.mapToModel(commentDto);
+        commentForSave.setItem(itemFromBd);
+        commentForSave.setAuthor(userFromBd);
+        commentForSave.setCreatedDate(LocalDateTime.now());
+        CommentDto result = commentDtoMapper.mapToDto(commentRepository.save(commentForSave));
+        return result;
+    }
+
+
+    /**
+     * Метод поиска первой аренды после указанной даты.
+     * @param bookings список бронирований.
+     * @param now      момент времени.
+     * @return следующее бронирование после даты.
+     */
+    private Booking findNextBookingByDate(List<Booking> bookings, LocalDateTime now) {
+        Booking first = null;
+        if (bookings != null && !bookings.isEmpty()) {
+            for (Booking b : bookings) {
+                if (b.getStartTime().isAfter(now)) {
+                    //Если результат равен null и начало после момента и статус равен (это или это)
+                    if (first == null && (b.getBookingStatus().equals(BookingStatus.APPROVED)
+                            || b.getBookingStatus().equals(BookingStatus.WAITING))) {
+                        first = b;
+                        //если first = null и
+                    } else if (first == null) {
+                        first = b;
+                    } else if (b.getStartTime().isBefore(first.getStartTime())) {
+                        first = b;
+                    }
+                }
+            }
+        }
+        return first;
+    }
+
+    /**
+     * Метод поиска последней аренды до указанной даты.
+     * @param bookings список бронирований.
+     * @param now      момент времени.
+     * @return последнее бронирование до указанной даты.
+     */
+    private Booking findLastBookingByDate(List<Booking> bookings, LocalDateTime now) {
+        Booking last = null;
+
+        if (bookings != null && !bookings.isEmpty()) {
+            for (Booking b : bookings) {
+                if (b.getEndTime().isBefore(now)) {
+                    //Если результат равен null и конец до момента и статус равен approved (подтверждено).
+                    if (last == null && (b.getBookingStatus().equals(BookingStatus.APPROVED))) {
+                        last = b;
+                        //если last = null
+                    } else if (last == null) {
+                        last = b;
+                    } else if (b.getEndTime().isAfter(last.getEndTime())) {
+                        last = b;
+                    }
+                }
+            }
+        }
+        return last;
     }
 }

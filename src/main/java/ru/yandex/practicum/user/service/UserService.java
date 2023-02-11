@@ -2,6 +2,7 @@ package ru.yandex.practicum.user.service;
 
 import ru.yandex.practicum.exception.NotFoundRecordInBD;
 import ru.yandex.practicum.exception.ValidateException;
+import ru.yandex.practicum.user.dto.UserDto;
 import ru.yandex.practicum.user.model.User;
 
 import java.util.List;
@@ -14,13 +15,13 @@ public interface UserService {
      * @return User - пользователь присутствует в библиотеке.
      * <p>null - пользователя нет в библиотеке.</p>
      */
-    User getUserById(Long id);
+    UserDto getUserById(Long id);
 
     /**
      * Получение списка всех пользователей.
      * @return Список пользователей.
      */
-    List<User> getAllUsers();
+    List<UserDto> getAllUsers();
 
 
     /**
@@ -28,14 +29,14 @@ public interface UserService {
      * @param user пользователь.
      * @return добавляемый пользователь.
      */
-    User addToStorage(User user) throws ValidateException, NotFoundRecordInBD;
+    UserDto addToStorage(UserDto user) throws ValidateException, NotFoundRecordInBD;
 
     /**
      * Обновить юзера в БД.
      * @param user пользователь
      * @return обновлённый пользователь.
      */
-    User updateInStorage(User user);
+    UserDto updateInStorage(UserDto user);
 
     /**
      * Удалить пользователя из БД.
